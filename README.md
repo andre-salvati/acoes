@@ -7,10 +7,11 @@
  - Simulação de carteiras
  - Cálculo de IR
 
+# Gráficos (exemplo)
+
 ![](img/resultado.png) 
 ![](img/compradas.png)
 ![](img/simulacao.png) 
-
 
  # Instruções
 
