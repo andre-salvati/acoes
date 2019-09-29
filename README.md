@@ -7,10 +7,11 @@
  - Simulação de carteiras
  - Cálculo de IR
 
- 
- (colocar gráficos)
- 
- 
+![](img/resultado.png) 
+![](img/compradas.png)
+![](img/simulacao.png) 
+
+
  # Instruções
 
  - Habilitar a instalação das bibliotecas abaixo, caso não ainda estejam instaladas.
