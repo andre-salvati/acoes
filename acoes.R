@@ -4,40 +4,76 @@
 #install.packages("lubridate")
 #install.packages("googledrive")
 #install.packages("tidyquant")
+#library("janitor")
 
 library(tidyverse)
 library(readxl)
 library(lubridate)
 library(googledrive)
 library(tidyquant)
+library(janitor)
 
-setwd("~/Desktop/acoes/")
+setwd("~/Desktop/workspace/git/stocks/")
 options("scipen"=100, digits = 4)
 texto45 = theme(axis.text.x=element_text(angle=45, hjust=1))
-theme_set(theme_minimal())
+theme_set(theme_bw())
 
-# Portfólio (Google Drive) -----------------
+# download an prepare portfolio (Google Drive) -----------------
 
-drive_find(n_max = 30)
-minha_planilha = "1H7APdQhZKSnUgFOefXTshJa1AwwW_H7eY3Tg4dgo-ts"
-arquivo = "Ações (modelo).xlsx"
+#drive_find(n_max = 30)
+my_spreadsheet = "1H7APdQhZKSnUgFOefXTshJa1AwwW_H7eY3Tg4dgo-ts"
+file = "Stocks (template).xlsx"
+drive_download(as_id(my_spreadsheet), overwrite = TRUE)
 
-drive_download(as_id(minha_planilha), overwrite = TRUE)
-comprado = read_excel(arquivo, sheet = "Comprado", col_names = TRUE)
-vendido = read_excel(arquivo, sheet = "Vendido", col_names = TRUE)
+portfolio = read_excel(file, sheet = "bought", col_names = TRUE) %>% clean_names() %>%
+                mutate(symbol = paste0(ticker,".SA"),
+                      date = as.Date(date))
 
-comprado$ticker = paste0(comprado$Ticker,".SA")
-comprado$data_entrada = as.Date(comprado$Data)
-comprado$quantidade = comprado$Qtd
-comprado$valor_entrada = comprado$`Valor entrada`
+# download quotes ---------------------
 
-# Cotações ----------------
+prices <- portfolio$symbol %>%
+            tq_get(get  = "stock.prices",
+                    from = "2023-01-01",
+                    to   = "2023-12-31")
 
-stock_prices <- comprado$ticker %>%
-                tq_get(get  = "stock.prices",
-                       from = "2021-01-01",
-                       to   = "2023-12-31") %>%
-                mutate(symbol = str_replace(symbol, "\\.SA", ""))  
+statement = prices %>%
+              left_join(portfolio, by = c("symbol" = "symbol", "date" = "date")) %>%
+              select(symbol, date, category, qty, purchase_price, open, close) %>%
+              mutate(qty = replace_na(qty, 0)) %>%
+              group_by(symbol) %>%
+              mutate(qty = cumsum(qty)) %>%
+              filter(qty > 0 ) %>%
+              #filter(symbol == "ITSA4.SA")
+              mutate(price = if_else(is.na(purchase_price), close, purchase_price),
+                    current_value = price * qty,
+                    category = first(category)) %>%
+              select(symbol, category, date, qty, current_value)
 
-unique(stock_prices$symbol)
+total = statement %>% group_by(date) %>%
+          summarise(total = sum(current_value)) %>%
+          ggplot(aes(date, total)) +
+          geom_point() +
+          geom_line() +
+          ggtitle("Total")
+
+total_symbol = statement %>% rename(total = current_value) %>%
+                ggplot(aes(date, total, color = symbol)) +
+                geom_point() +
+                geom_line() +
+                ggtitle("Total per symbol")
+
+total_category = statement %>% group_by(category, date) %>%
+                  summarise(total = sum(current_value)) %>%
+                  ggplot(aes(date, total, color = category)) +
+                  geom_point() +
+                  geom_line() +
+                  ggtitle("Total per category")
+
+
+w_ = 15
+h_ = 10
+
+ggsave(total, filename = "./img/total.png", width = w_, height = h_)
+ggsave(total_symbol, filename = "./img/total_per_symbol.png", width = w_, height = h_)
+ggsave(total_category, filename = "./img/total_per_category.png", width = w_, height = h_)
 
