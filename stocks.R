@@ -1,10 +1,10 @@
-
-#install.packages("tidyverse")
-#install.packages("readxl")
-#install.packages("lubridate")
-#install.packages("googledrive")
-#install.packages("tidyquant")
-#library("janitor")
+# 
+# install.packages("tidyverse")
+# install.packages("readxl")
+# install.packages("lubridate")
+# install.packages("googledrive")
+# install.packages("tidyquant")
+# install.packages("janitor")
 
 library(tidyverse)
 library(readxl)
@@ -20,18 +20,18 @@ theme_set(theme_bw())
 
 # download an prepare portfolio (Google Drive) -----------------
 
-#drive_find(n_max = 30)
+drive_find(n_max = 30)
 my_spreadsheet = "1H7APdQhZKSnUgFOefXTshJa1AwwW_H7eY3Tg4dgo-ts"
 file = "Stocks (template).xlsx"
 drive_download(as_id(my_spreadsheet), overwrite = TRUE)
-
 portfolio = read_excel(file, sheet = "bought", col_names = TRUE) %>% clean_names() %>%
                 mutate(symbol = paste0(ticker,".SA"),
                       date = as.Date(date))
 
+
 # download quotes ---------------------
 
-prices <- portfolio$symbol %>%
+prices <- c(portfolio$symbol) %>%
             tq_get(get  = "stock.prices",
                     from = "2023-01-01",
                     to   = "2023-12-31")
@@ -69,6 +69,19 @@ total_category = statement %>% group_by(category, date) %>%
                   geom_line() +
                   ggtitle("Total per category")
 
+prices_median = prices %>% group_by(symbol) %>% summarise(last_price = last(close),
+                  median_price = median(close)) %>%
+                  mutate(perc_change = ((last_price/median_price) -1) *100) %>%
+                  select(symbol, perc_change, last_price)
+
+prices %>% left_join(prices_median, by = "symbol") %>% 
+            mutate(symbol = fct_reorder(symbol, desc(perc_change))) %>%
+            ggplot(aes(symbol, close)) +
+            geom_boxplot() +
+            geom_point(data=portfolio, aes(symbol, purchase_price), color = "green") +
+            #geom_point(, 
+            #             aes(symbol, last_price), color = "blue") +
+              texto45
 
 w_ = 15
 h_ = 10

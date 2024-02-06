@@ -33,8 +33,6 @@ This mini project enables:
   
 - If you buy or sell, update the spreadsheet and run the script again.
 
-## Diagram
-
 
 ## Sample Charts
 
